@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Análisis de Imágenes</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap');
+        
+        :root {
+            --primary-color: #002d62;
+            --secondary-color: #005f96;
+            --background-color: #f0f2f5;
+            --card-background: #ffffff;
+            --text-color: #333;
+            --subtle-text-color: #666;
+            --border-color: #e0e0e0;
+            --success-color: #28a745;
+            --error-color: #dc3545;
+        }
+        
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 40px;
+            display: flex;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            background: var(--card-background);
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+            text-align: center;
+            padding: 40px;
+        }
+
+        h1 {
+            font-size: 2.5em;
+            font-weight: 600;
+            margin-bottom: 5px;
+            color: var(--primary-color);
+        }
+
+        .subtitle {
+            color: var(--subtle-text-color);
+            margin-bottom: 30px;
+            font-size: 1.1em;
+        }
+
+        .input-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .input-card {
+            padding: 20px;
+            border: 2px dashed var(--border-color);
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            background-color: #fafafa;
+        }
+
+        .input-card:has(.image-preview[src]:not([src=""])) {
+            border-style: solid;
+            border-color: var(--primary-color);
+        }
+
+        .image-preview {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            display: none;
+        }
+        
+        .input-card .image-preview[src]:not([src=""]) {
+            display: block;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 1em;
+            transition: border-color 0.3s;
+            box-sizing: border-box;
+        }
+        
+        input[type="text"]:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+        
+        .btn {
+            padding: 12px 25px;
+            border: none;
+            color: white;
+            border-radius: 8px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.2s;
+        }
+        
+        .btn-load {
+            background-color: var(--secondary-color);
+        }
+
+        .btn-load:hover {
+            background-color: #004a7a;
+            transform: translateY(-2px);
+        }
+        
+        .btn-analyze {
+            background-color: var(--primary-color);
+            margin-top: 20px;
+        }
+
+        .btn-analyze:hover {
+            background-color: #001f40;
+            transform: translateY(-2px);
+        }
+
+        .btn:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .loading, .status-message {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 1.1em;
+        }
+
+        .loading {
+            color: var(--primary-color);
+            font-weight: 600;
+        }
+        
+        .loading::before {
+            content: '⏳';
+            margin-right: 10px;
+        }
+
+        .status-message.success {
+            background-color: #e6f7ea;
+            color: var(--success-color);
+            border: 1px solid #c3e6cb;
+        }
+
+        .status-message.error {
+            background-color: #f8d7da;
+            color: var(--error-color);
+            border: 1px solid #f5c6cb;
+        }
+
+        .results-container {
+            margin-top: 40px;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+        }
+
+        .image-result {
+            padding: 20px;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            background-color: #fafafa;
+            text-align: left;
+        }
+        
+        .result-details {
+            margin-top: 15px;
+        }
+        
+        .image-title {
+            font-size: 1.2em;
+            font-weight: 600;
+            color: var(--primary-color);
+            margin-bottom: 10px;
+            word-break: break-all;
+        }
+        
+        .tag-container {
+            margin-top: 10px;
+        }
+
+        .tag {
+            display: inline-block;
+            background-color: var(--primary-color);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 20px;
+            margin: 5px 5px 5px 0;
+            font-size: 0.9em;
+        }
+
+        .confidence {
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Análisis de Imágenes</h1>
+        <p class="subtitle">Obtén etiquetas (tags) de hasta 3 imágenes a partir de su URL</p>
+        
+        <div class="input-grid" id="input-grid">
+            <div class="input-card">
+                <input type="text" class="url-input" placeholder="URL de la imagen 1">
+                <button class="btn btn-load" onclick="loadImage(0)">Cargar</button>
+                <img class="image-preview" src="" alt="Vista previa 1">
+            </div>
+            <div class="input-card">
+                <input type="text" class="url-input" placeholder="URL de la imagen 2">
+                <button class="btn btn-load" onclick="loadImage(1)">Cargar</button>
+                <img class="image-preview" src="" alt="Vista previa 2">
+            </div>
+            <div class="input-card">
+                <input type="text" class="url-input" placeholder="URL de la imagen 3">
+                <button class="btn btn-load" onclick="loadImage(2)">Cargar</button>
+                <img class="image-preview" src="" alt="Vista previa 3">
+            </div>
+        </div>
+
+        <button class="btn btn-analyze" id="analyze-btn" disabled onclick="analyzeImages()">Analizar Imágenes</button>
+
+        <div id="loading" class="loading" style="display: none;">
+            Analizando imágenes, por favor espera...
+        </div>
+
+        <div id="status-message-container"></div>
+
+        <div id="results-container" class="results-container" style="display: none;"></div>
+    </div>
+
+    <script>
+        const urlInputs = document.querySelectorAll('.url-input');
+        const imagePreviews = document.querySelectorAll('.image-preview');
+        const analyzeBtn = document.getElementById('analyze-btn');
+        const loading = document.getElementById('loading');
+        const statusMessageContainer = document.getElementById('status-message-container');
+        const resultsContainer = document.getElementById('results-container');
+
+        function checkAnalyzeButton() {
+            const loadedImagesCount = Array.from(imagePreviews).filter(img => img.src && img.src !== 'http://localhost:5000/').length;
+            analyzeBtn.disabled = loadedImagesCount !== 3;
+        }
+
+        function loadImage(index) {
+            const url = urlInputs[index].value.trim();
+            const preview = imagePreviews[index];
+            statusMessageContainer.innerHTML = '';
+            resultsContainer.style.display = 'none';
+
+            if (!url) {
+                statusMessageContainer.innerHTML = '<div class="status-message error">Por favor, introduce una URL.</div>';
+                preview.src = '';
+                checkAnalyzeButton();
+                return;
+            }
+
+            preview.src = url;
+            preview.onload = () => {
+                checkAnalyzeButton();
+                statusMessageContainer.innerHTML = '';
+            };
+            preview.onerror = () => {
+                preview.src = '';
+                checkAnalyzeButton();
+                statusMessageContainer.innerHTML = '<div class="status-message error">URL de imagen no válida.</div>';
+            };
+        }
+
+        async function analyzeImages() {
+            const image_urls = Array.from(urlInputs).map(input => input.value.trim());
+
+            analyzeBtn.disabled = true;
+            loading.style.display = 'block';
+            resultsContainer.style.display = 'none';
+            resultsContainer.innerHTML = '';
+            statusMessageContainer.innerHTML = '';
+
+            try {
+                const response = await fetch('/analyze', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ image_urls })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    data.results.forEach(result => {
+                        const resultDiv = document.createElement('div');
+                        resultDiv.className = 'image-result';
+
+                        if (result.success) {
+                            const tagsHtml = result.tags.map(tag => 
+                                `<span class="tag">${tag.name} <span class="confidence">(${tag.confidence}%)</span></span>`
+                            ).join('');
+
+                            resultDiv.innerHTML = `
+                                <h3 class="image-title">${result.image_name}</h3>
+                                <div class="tag-container">
+                                    ${tagsHtml}
+                                </div>
+                            `;
+                        } else {
+                            resultDiv.innerHTML = `
+                                <h3 class="image-title">${result.image_name}</h3>
+                                <div class="status-message error">${result.error}</div>
+                            `;
+                        }
+                        resultsContainer.appendChild(resultDiv);
+                    });
+                    resultsContainer.style.display = 'grid';
+                } else {
+                    statusMessageContainer.innerHTML = `<div class="status-message error">❌ Error: ${data.error}</div>`;
+                }
+
+            } catch (error) {
+                statusMessageContainer.innerHTML = `<div class="status-message error">❌ Error de conexión: ${error.message}</div>`;
+            } finally {
+                analyzeBtn.disabled = false;
+                loading.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>
